@@ -1,0 +1,13 @@
+__pycache__
+.vscode
+
+bindings
+build
+build-support
+cmake-cache
+contrib
+doc
+examples
+output
+testpy-output
+utils
