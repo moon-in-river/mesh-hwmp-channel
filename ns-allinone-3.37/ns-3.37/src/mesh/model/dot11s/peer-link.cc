@@ -122,14 +122,14 @@ PeerLink::~PeerLink()
 void
 PeerLink::DoDispose ()
 {
-	  NS_LOG_FUNCTION (this);
-	  m_retryTimer.Cancel ();
-	  m_holdingTimer.Cancel ();
-	  m_confirmTimer.Cancel ();
-	  m_beaconLossTimer.Cancel ();
-	  m_beaconMissedTimer.Cancel ();
+	NS_LOG_FUNCTION (this);
+	m_retryTimer.Cancel ();
+	m_holdingTimer.Cancel ();
+	m_confirmTimer.Cancel ();
+	m_beaconLossTimer.Cancel ();
+	m_beaconMissedTimer.Cancel ();
 
-	  m_beaconTiming.ClearTimingElement ();
+	m_beaconTiming.ClearTimingElement ();
 }
 
 void

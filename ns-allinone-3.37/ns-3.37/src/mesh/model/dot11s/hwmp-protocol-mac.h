@@ -65,7 +65,7 @@ class HwmpProtocolMac : public MeshWifiInterfaceMacPlugin
     // Update beacon is empty, because HWMP does not know anything about beacons
     void UpdateBeacon(MeshWifiBeacon& beacon) const override{};
     int64_t AssignStreams(int64_t stream) override;
-	
+
 	/**
 	 * Set the Node Id
 	 * \param  nodeId, the node Id

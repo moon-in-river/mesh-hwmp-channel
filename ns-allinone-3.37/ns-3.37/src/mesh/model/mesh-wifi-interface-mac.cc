@@ -811,6 +811,6 @@ MeshWifiInterfaceMac::GetPeerLastTimeStampPower (Mac48Address peerAddress)
     }
     return lastUpdateTime;
 }
-    
+
 
 } // namespace ns3

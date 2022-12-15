@@ -134,7 +134,7 @@ HwmpProtocolMac::ReceiveAction(Ptr<Packet> packet, const WifiMacHeader& header)
         if ((*i)->ElementId() == IE_PREQ)
         {
             Ptr<IePreq> preq = DynamicCast<IePreq>(*i);
-            NS_ASSERT(preq != 0);
+            NS_ASSERT(preq);
             m_stats.rxPreq++;
             if (preq->GetOriginatorAddress() == m_protocol->GetAddress())
             {
@@ -154,7 +154,7 @@ HwmpProtocolMac::ReceiveAction(Ptr<Packet> packet, const WifiMacHeader& header)
         if ((*i)->ElementId() == IE_PREP)
         {
             Ptr<IePrep> prep = DynamicCast<IePrep>(*i);
-            NS_ASSERT(prep != 0);
+            NS_ASSERT(prep);
             m_stats.rxPrep++;
             if (prep->GetTtl() == 0)
             {
@@ -170,7 +170,7 @@ HwmpProtocolMac::ReceiveAction(Ptr<Packet> packet, const WifiMacHeader& header)
         if ((*i)->ElementId() == IE_PERR)
         {
             Ptr<IePerr> perr = DynamicCast<IePerr>(*i);
-            NS_ASSERT(perr != 0);
+            NS_ASSERT(perr);
             m_stats.rxPerr++;
             std::vector<HwmpProtocol::FailedDestination> destinations =
                 perr->GetAddressUnitVector();
@@ -612,23 +612,22 @@ HwmpProtocolMac::Statistics::Statistics()
 void
 HwmpProtocolMac::Statistics::Print(std::ostream& os) const
 {
-  os << "<Statistics "
-  "txPreq= \"" << txPreq << "\"" << std::endl <<
-  "txPrep=\"" << txPrep << "\"" << std::endl <<
-  "txPerr=\"" << txPerr << "\"" << std::endl <<
-  "txLpp=\"" << txLpp << "\"" << std::endl <<
-  "rxPreq=\"" << rxPreq << "\"" << std::endl <<
-  "rxPrep=\"" << rxPrep << "\"" << std::endl <<
-  "rxPerr=\"" << rxPerr << "\"" << std::endl <<
-  "rxLpp=\"" << rxLpp << "\"" << std::endl <<
-  "txMgt=\"" << txMgt << "\"" << std::endl <<
-  "txMgtBytes=\"" << txMgtBytes << "\"" << std::endl <<
-  "rxMgt=\"" << rxMgt << "\"" << std::endl <<
-  "rxMgtBytes=\"" << rxMgtBytes << "\"" << std::endl <<
-  "txData=\"" << txData << "\"" << std::endl <<
-  "txDataBytes=\"" << txDataBytes << "\"" << std::endl <<
-  "rxData=\"" << rxData << "\"" << std::endl <<
-  "rxDataBytes=\"" << rxDataBytes << "\"/>" << std::endl;
+    os << "<Statistics "
+          "txPreq= \""
+       << txPreq << "\"" << std::endl
+       << "txPrep=\"" << txPrep << "\"" << std::endl
+       << "txPerr=\"" << txPerr << "\"" << std::endl
+       << "rxPreq=\"" << rxPreq << "\"" << std::endl
+       << "rxPrep=\"" << rxPrep << "\"" << std::endl
+       << "rxPerr=\"" << rxPerr << "\"" << std::endl
+       << "txMgt=\"" << txMgt << "\"" << std::endl
+       << "txMgtBytes=\"" << txMgtBytes << "\"" << std::endl
+       << "rxMgt=\"" << rxMgt << "\"" << std::endl
+       << "rxMgtBytes=\"" << rxMgtBytes << "\"" << std::endl
+       << "txData=\"" << txData << "\"" << std::endl
+       << "txDataBytes=\"" << txDataBytes << "\"" << std::endl
+       << "rxData=\"" << rxData << "\"" << std::endl
+       << "rxDataBytes=\"" << rxDataBytes << "\"/>" << std::endl;
 }
 
 void

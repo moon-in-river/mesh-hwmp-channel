@@ -21,7 +21,7 @@
 #define MESH_ID_H
 
 #include "ns3/buffer.h"
-#include "ns3/mesh-information-element-vector.h" 
+#include "ns3/mesh-information-element-vector.h"
 
 #include <stdint.h>
 

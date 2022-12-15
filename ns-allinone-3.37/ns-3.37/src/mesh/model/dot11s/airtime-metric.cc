@@ -105,7 +105,6 @@ AirtimeLinkMetricCalculator::CalculateMetric(Mac48Address peerAddress,
      * Final result is expressed in units of 0.01 Time Unit = 10.24 us (as required by 802.11s
      * draft)
      */
-    double failAvg;
     NS_ASSERT(!peerAddress.IsGroup());
     // obtain current rate:
     WifiMode mode = mac->GetWifiRemoteStationManager()

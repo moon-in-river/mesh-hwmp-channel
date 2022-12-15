@@ -20,14 +20,15 @@
 #ifndef HWMP_PROTOCOL_H
 #define HWMP_PROTOCOL_H
 
-#include "ns3/mesh-l2-routing-protocol.h"
-#include "ns3/nstime.h"
-#include "ns3/event-id.h"
-#include "ns3/traced-value.h"
-#include <vector>
-#include <map>
 #include "hwmp-neighbor-etx.h"
 #include "ns3/vector.h"
+#include "ns3/event-id.h"
+#include "ns3/mesh-l2-routing-protocol.h"
+#include "ns3/nstime.h"
+#include "ns3/traced-value.h"
+
+#include <map>
+#include <vector>
 
 namespace ns3
 {
