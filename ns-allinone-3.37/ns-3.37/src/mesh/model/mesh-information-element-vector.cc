@@ -40,6 +40,9 @@
 #include "ns3/ie-lpp.h"
 #include "ns3/ie-node-report.h"
 
+// #include "./dot11s/ie-lpp.h"
+// #include "./dot11s/ie-node-report.h"
+
 namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED(MeshInformationElementVector);
@@ -74,6 +77,7 @@ MeshInformationElementVector::DeserializeSingleIe(Buffer::Iterator start)
     Buffer::Iterator i = start;
     uint8_t id = i.ReadU8();
     uint8_t length = i.ReadU8();
+    i.Prev(2);
     Ptr<WifiInformationElement> newElement;
     switch (id)
     {
@@ -123,8 +127,7 @@ MeshInformationElementVector::DeserializeSingleIe(Buffer::Iterator start)
     {
         NS_FATAL_ERROR("Check max size for information element!");
     }
-	newElement->DeserializeInformationField (i, length);
-	i.Next (length);
+    i = newElement->Deserialize(i);
     m_elements.push_back(newElement);
     return i.GetDistanceFrom(start);
 }

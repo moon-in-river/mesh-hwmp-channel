@@ -279,6 +279,7 @@ typedef uint8_t WifiInformationElementId;
 class WifiInformationElement : public SimpleRefCount<WifiInformationElement>
 {
   public:
+    WifiInformationElement();
     virtual ~WifiInformationElement();
     /**
      * Serialize entire IE including Element ID and length fields. Handle

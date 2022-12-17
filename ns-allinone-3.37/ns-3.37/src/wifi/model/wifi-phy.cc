@@ -761,6 +761,12 @@ WifiPhy::GetAckTxTime() const
 }
 
 Time
+WifiPhy::GetEifsNoDifs() const
+{
+    return m_pifs + m_ackTxTime;
+}
+
+Time
 WifiPhy::GetBlockAckTxTime() const
 {
     return m_blockAckTxTime;

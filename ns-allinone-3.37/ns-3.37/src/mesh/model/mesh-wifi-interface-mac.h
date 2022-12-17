@@ -233,6 +233,12 @@ class MeshWifiInterfaceMac : public WifiMac
      * \return the number of stream indices assigned by this model
      */
     int64_t AssignStreams(int64_t stream);
+    /**
+     * @brief add by heyao, 2022.
+     *
+     * @return WifiStandard
+     */
+    WifiStandard GetPhyStandard () const;
   /**
    * Returns the WifiMode used for sending Data Packets
    * \param peerAddress, the peer Address

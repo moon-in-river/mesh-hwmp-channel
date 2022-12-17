@@ -185,7 +185,7 @@ HwmpProtocolMac::ReceiveAction(Ptr<Packet> packet, const WifiMacHeader& header)
 		if ((*i)->ElementId() == IE_LPP)
         {
           Ptr<IeLpp> lpp = DynamicCast<IeLpp>(*i);
-          NS_ASSERT(lpp != 0);
+          NS_ASSERT(lpp);
           m_stats.rxLpp++;
           m_protocol->ReceiveLpp(*lpp, header.GetAddr2(), m_ifIndex, header.GetAddr3());
         }

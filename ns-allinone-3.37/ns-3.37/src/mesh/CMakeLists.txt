@@ -8,6 +8,7 @@ build_lib(
     model/dot11s/airtime-metric.cc
     model/dot11s/dot11s-mac-header.cc
     model/dot11s/hwmp-protocol-mac.cc
+    model/dot11s/hwmp-neighbor-etx.cc
     model/dot11s/hwmp-protocol.cc
     model/dot11s/hwmp-rtable.cc
     model/dot11s/hwmp-tag.cc
@@ -21,6 +22,8 @@ build_lib(
     model/dot11s/ie-dot11s-prep.cc
     model/dot11s/ie-dot11s-preq.cc
     model/dot11s/ie-dot11s-rann.cc
+    model/dot11s/ie-lpp.cc
+    model/dot11s/ie-node-report.cc
     model/dot11s/peer-link-frame.cc
     model/dot11s/peer-link.cc
     model/dot11s/peer-management-protocol-mac.cc
@@ -40,6 +43,7 @@ build_lib(
     helper/mesh-helper.h
     helper/mesh-stack-installer.h
     model/dot11s/dot11s-mac-header.h
+    model/dot11s/hwmp-neighbor-etx.h
     model/dot11s/hwmp-protocol.h
     model/dot11s/hwmp-rtable.h
     model/dot11s/ie-dot11s-beacon-timing.h
@@ -52,6 +56,8 @@ build_lib(
     model/dot11s/ie-dot11s-prep.h
     model/dot11s/ie-dot11s-preq.h
     model/dot11s/ie-dot11s-rann.h
+    model/dot11s/ie-lpp.h
+    model/dot11s/ie-node-report.h
     model/dot11s/peer-link-frame.h
     model/dot11s/peer-link.h
     model/dot11s/peer-management-protocol.h

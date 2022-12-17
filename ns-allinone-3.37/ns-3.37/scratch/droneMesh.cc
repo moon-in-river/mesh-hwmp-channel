@@ -93,7 +93,7 @@ public:
    * \param argc command line argument count
    * \param argv command line arguments
    */
-  void Configure (int argc, char ** argv);
+  void Configure (int argc, char *argv[]);
   /**
    * Run test
    * \returns the test status
@@ -296,11 +296,12 @@ MeshTest::CreateNodes ()
  /* Default YansWifiPhyHelper:
   * SetErrorRateModel to "ns3::NistErrorRateModel"
   */
-  YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
+  YansWifiPhyHelper wifiPhy;
  /*
   * Configuration of Physical layer parameters
   */
-  wifiPhy.Set ("EnergyDetectionThreshold", DoubleValue (-87.0) );  //Default: -96.0
+//   wifiPhy.Set ("EnergyDetectionThreshold", DoubleValue (-87.0) );  //Default: -96.0
+  wifiPhy.Set ("RxSensitivity", DoubleValue (-92.0) );  //Default: -96.0
   //wifiPhy.Set ("CcaMode1Threshold", DoubleValue (-96.0) );       //Default: -99.0
   //wifiPhy.Set ("TxGain", DoubleValue (1.0) );                    //Default: 0
   //wifiPhy.Set ("RxGain", DoubleValue (1.0) );                    //Default: 0
@@ -310,11 +311,11 @@ MeshTest::CreateNodes ()
   //wifiPhy.Set ("RxNoiseFigure", DoubleValue (7.0) );           //Default: 7.0
   wifiPhy.Set ("Antennas", UintegerValue (2) );
   ///Parameters specific for 802.11n:
-  wifiPhy.Set ("GreenfieldEnabled", BooleanValue (false) );
+//   wifiPhy.Set ("GreenfieldEnabled", BooleanValue (false) ); // removed in 3.37
   ///Parameters specific for 802.11n/ac/ax:
   wifiPhy.Set ("MaxSupportedTxSpatialStreams", UintegerValue (1) );
   wifiPhy.Set ("MaxSupportedRxSpatialStreams", UintegerValue (1) );
-  wifiPhy.Set ("ShortGuardEnabled", BooleanValue (false) );
+//   wifiPhy.Set ("ShortGuardEnabled", BooleanValue (false) ); // removed in 3.37
 
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper ();
 
@@ -387,11 +388,11 @@ MeshTest::CreateNodes ()
   if (m_remStaManager == "constantrate")  mesh.SetRemoteStationManager ("ns3::ConstantRateWifiManager","DataMode", StringValue (m_linkRate),
                                                                         "ControlMode", StringValue(m_linkRate));
 
-  if (m_wifiStandard == "80211a")     mesh.SetStandard (WIFI_PHY_STANDARD_80211a);
-  if (m_wifiStandard == "80211b")     mesh.SetStandard (WIFI_PHY_STANDARD_80211b);
-  if (m_wifiStandard == "80211g")     mesh.SetStandard (WIFI_PHY_STANDARD_80211g);
-  if (m_wifiStandard == "80211n2.4")  mesh.SetStandard (WIFI_PHY_STANDARD_80211n_2_4GHZ);
-  if (m_wifiStandard == "80211n5")    mesh.SetStandard (WIFI_PHY_STANDARD_80211n_5GHZ);
+  if (m_wifiStandard == "80211a")     mesh.SetStandard (WIFI_STANDARD_80211a);
+  if (m_wifiStandard == "80211b")     mesh.SetStandard (WIFI_STANDARD_80211b);
+  if (m_wifiStandard == "80211g")     mesh.SetStandard (WIFI_STANDARD_80211g);
+  if (m_wifiStandard == "80211n2.4")  mesh.SetStandard (WIFI_STANDARD_80211n);
+  if (m_wifiStandard == "80211n5")    mesh.SetStandard (WIFI_STANDARD_80211n);
 
   mesh.SetMacType ("RandomStart", TimeValue (Seconds (m_randomStart)));
   // Set number of interfaces - default is single-interface mesh point
@@ -561,13 +562,13 @@ MeshTest::Run ()
   FlowMonitorHelper flowHelper;
   flowMonitor = flowHelper.InstallAll();
   //NetAnim
-  // AnimationInterface anim ("MeshAnimation.xml");
-  // anim.SetMobilityPollInterval (Seconds (0.5));
+  AnimationInterface anim ("output/xml/MeshAnimation.xml");
+  anim.SetMobilityPollInterval (Seconds (0.5));
 
   Simulator::Stop (Seconds (m_totalTime));
   Simulator::Run ();
 
-  flowMonitor->SerializeToXmlFile("MeshPerformance.xml", true, true);
+  flowMonitor->SerializeToXmlFile("output/xml/MeshPerformance.xml", true, true);
 
   //After Simulation save final node locations
   ExportMobility ("end");
@@ -582,7 +583,7 @@ MeshTest::Report ()
   for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i, ++n)
     {
       std::ostringstream os;
-      os << "mp-report-" << n << ".xml";
+      os << "output/xml/mp-report-" << n << ".xml";
       std::cerr << "Printing mesh point device #" << n << " diagnostics to " << os.str () << "\n";
       std::ofstream of;
       of.open (os.str ().c_str ());

@@ -26,8 +26,7 @@
 
 #include "ns3/wifi-information-element-vector.h"
 
-namespace ns3
-{
+namespace ns3{
 
 #define IE11S_MESH_PEERING_PROTOCOL_VERSION ((WifiInformationElementId)74) //to be removed (Protocol ID should be part of the Mesh Peering Management IE)
 #define IE_LPP  ((WifiInformationElementId)220) //for custom implementation of etx metric. O.Bautista (March, 2019)

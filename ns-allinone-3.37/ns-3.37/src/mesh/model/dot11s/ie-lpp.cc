@@ -42,6 +42,11 @@ IeLpp::ElementId() const
 	return IE_LPP;
 }
 
+WifiInformationElementId
+IeLpp::ElemenmtIdExt() const {
+    return 0;
+}
+
 void
 IeLpp::SerializeInformationField(Buffer::Iterator i) const
 {
@@ -57,8 +62,8 @@ IeLpp::SerializeInformationField(Buffer::Iterator i) const
 	}
 }
 
-uint8_t
-IeLpp::DeserializeInformationField(Buffer::Iterator start, uint8_t length)
+uint16_t
+IeLpp::DeserializeInformationField(Buffer::Iterator start, uint16_t length)
 {
 	Buffer::Iterator i = start;
 	m_lppId = i.ReadU8();
@@ -80,7 +85,7 @@ IeLpp::DeserializeInformationField(Buffer::Iterator start, uint8_t length)
 	return dist;
 }
 
-uint8_t
+uint16_t
 IeLpp::GetInformationFieldSize() const
 {
 	uint8_t retval = 1 //LPP ID

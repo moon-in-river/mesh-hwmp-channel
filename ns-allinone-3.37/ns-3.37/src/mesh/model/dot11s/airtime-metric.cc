@@ -124,7 +124,8 @@ AirtimeLinkMetricCalculator::CalculateMetric(Mac48Address peerAddress,
 
     // calculate metric
     uint32_t metric;
-    double powerBudget = mac->GetPeerRxPower(peerAddress) - mac->GetWifiPhy()->GetEdThreshold();
+    Ptr<WifiPhy> phy = mac->GetWifiPhy();
+    double powerBudget = mac->GetPeerRxPower(peerAddress) - phy->GetCcaEdThreshold();
     double powerCompensation = 0;
     double powerFactor = 1;
     if (powerBudget < 3)
@@ -134,8 +135,8 @@ AirtimeLinkMetricCalculator::CalculateMetric(Mac48Address peerAddress,
     if (m_useRootSquare)
     {
       metric = (uint32_t) ( ( ((double)( /*Overhead + payload*/
-                                    mac->GetPifs () + mac->GetSlot () + mac->GetEifsNoDifs ()).GetMicroSeconds() + //DIFS + SIFS + AckTxTime = PIFS + SLOT + EifsNoDifs
-                                    20*std::sqrt ((double)(mac->GetWifiPhy ()->CalculateTxDuration (m_testFrame->GetSize (), txVector, mac->GetWifiPhy ()->GetFrequency ())).GetMicroSeconds ())
+                                    phy->GetPifs () + phy->GetSlot () + phy->GetEifsNoDifs ()).GetMicroSeconds() + //DIFS + SIFS + AckTxTime = PIFS + SLOT + EifsNoDifs
+                                    20*std::sqrt ((double)(phy->CalculateTxDuration (m_testFrame->GetSize (), txVector, WifiPhyBand(phy->GetFrequency ()))).GetMicroSeconds ())
                               ) / 10.24 + (powerCompensation)
                             )* powerFactor/(1.0 - failAvg)
                           );
@@ -143,8 +144,8 @@ AirtimeLinkMetricCalculator::CalculateMetric(Mac48Address peerAddress,
     else
     {
       metric = (uint32_t) ( ( ((double)( /*Overhead + payload*/
-                                      mac->GetPifs () + mac->GetSlot () + mac->GetEifsNoDifs () + //DIFS + SIFS + AckTxTime = PIFS + SLOT + EifsNoDifs
-                                      mac->GetWifiPhy ()->CalculateTxDuration (m_testFrame->GetSize (), txVector, mac->GetWifiPhy ()->GetFrequency ())).GetMicroSeconds ()
+                                    phy->GetPifs () + phy->GetSlot () + phy->GetEifsNoDifs () + //DIFS + SIFS + AckTxTime = PIFS + SLOT + EifsNoDifs
+                                    phy->CalculateTxDuration (m_testFrame->GetSize (), txVector, WifiPhyBand(phy->GetFrequency ()))).GetMicroSeconds ()
                               ) / 10.24 + (powerCompensation)
                             )* powerFactor/(1.0 - failAvg)
                           );

@@ -38,9 +38,10 @@
 #include "ns3/wifi-utils.h"
 #include "ns3/yans-wifi-phy.h"
 
-#include "ns3/mac-low.h"
+// #include "ns3/mac-low.h"
 #include "ns3/mobility-module.h"
 #include "ns3/rx-power-tag.h"
+// #include "../../wifi/model/rx-power-tag.h"
 
 namespace ns3
 {
@@ -623,7 +624,7 @@ MeshWifiInterfaceMac::ConfigureContentionWindow(uint32_t cwMin, uint32_t cwMax)
     m_txop->SetAifsn(1);
 	m_scheduler->SetWifiMac(this);
 }
-WifiPhyStandard
+WifiStandard
 MeshWifiInterfaceMac::GetPhyStandard () const
 {
   return m_standard;
@@ -631,17 +632,18 @@ MeshWifiInterfaceMac::GetPhyStandard () const
 WifiMode
 MeshWifiInterfaceMac::GetDataTxWifiMode(Mac48Address peerAddress)
 {
-  Ptr<Packet> m_dataFrame; ///< data frame
+//   Ptr<Packet> m_dataFrame; ///< data frame
   WifiMacHeader m_dataHeader; ///< data header
 
-  m_dataFrame = Create<Packet> (1024 + 6 /*Mesh header*/ + 36 /*802.11 header*/);
+//   m_dataFrame = Create<Packet> (1024 + 6 /*Mesh header*/ + 36 /*802.11 header*/);
 
   m_dataHeader.SetType (WIFI_MAC_DATA);
   m_dataHeader.SetDsFrom ();
   m_dataHeader.SetDsTo ();
   m_dataHeader.SetQosTid (0);
 
-  return GetWifiRemoteStationManager ()->GetDataTxVector (peerAddress, &m_dataHeader, m_dataFrame).GetMode();
+//   return GetWifiRemoteStationManager ()->GetDataTxVector (peerAddress, &m_dataHeader, m_dataFrame).GetMode();
+  return GetWifiRemoteStationManager ()->GetDataTxVector (m_dataHeader, GetWifiPhy()->GetChannelWidth()).GetMode();
 }
 void
 MeshWifiInterfaceMac::UpdateFailAvg (Mac48Address peerAddress, double failAvg)

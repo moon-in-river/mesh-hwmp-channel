@@ -42,6 +42,12 @@ IeNodeReport::ElementId() const
 	return IE_NODE_REPORT;
 }
 
+WifiInformationElementId
+IeNodeReport::ElementIdExt() const
+{
+	return 0;
+}
+
 void
 IeNodeReport::SetLocation (Vector location)
 {
@@ -90,8 +96,8 @@ IeNodeReport::SerializeInformationField(Buffer::Iterator i) const
 	i.WriteHtolsbU16 ((int16_t) (m_nodeVelocity.z*10));
 }
 
-uint8_t
-IeNodeReport::DeserializeInformationField(Buffer::Iterator start, uint8_t length)
+uint16_t
+IeNodeReport::DeserializeInformationField(Buffer::Iterator start, uint16_t length)
 {
 	Buffer::Iterator i = start;
 	m_nodeId = i.ReadU8 ();
@@ -106,7 +112,7 @@ IeNodeReport::DeserializeInformationField(Buffer::Iterator start, uint8_t length
 	return dist;
 }
 
-uint8_t
+uint16_t
 IeNodeReport::GetInformationFieldSize() const
 {
 	uint8_t retval = 1  //Node Id

@@ -74,8 +74,9 @@ public:
 
 	// Inherited from WifiInformationElement
 	WifiInformationElementId ElementId() const override;
+    WifiInformationElementId ElementIdExt() const;
 	void SerializeInformationField(Buffer::Iterator i) const override;
-	uint8_t DeserializeInformationField(Buffer::Iterator start, uint8_t length);
+	uint16_t DeserializeInformationField(Buffer::Iterator start, uint16_t length);
 	uint16_t GetInformationFieldSize() const override;
 	void Print(std::ostream& os) const override;
 

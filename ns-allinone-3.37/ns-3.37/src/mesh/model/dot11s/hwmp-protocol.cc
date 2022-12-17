@@ -15,6 +15,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * Authors: Kirill Andreev <andreev@iitp.ru>
+ *
+ * Modified by: Oscar Bautista <obaut004@fiu.edu>
+ * to implement ETX and other metrics. (2019).
  */
 
 #include "hwmp-protocol.h"
@@ -141,6 +144,35 @@ HwmpProtocol::GetTypeId()
                           BooleanValue(true),
                           MakeBooleanAccessor(&HwmpProtocol::m_rfFlag),
                           MakeBooleanChecker())
+            .AddAttribute ( "EtxMetric",
+                            "Enable use of ETX Metric overriding AirTime Metric",
+                            BooleanValue (false),
+                            MakeBooleanAccessor (
+                            &HwmpProtocol::m_etxMetric),
+                            MakeBooleanChecker ()
+                            )
+            .AddAttribute ( "LinkProbePacket",
+                            "Enable the Transmission of LPP needed to calculate the ETX Metric, "
+                            "enabled automatically when EtxMetric is selected",
+                            BooleanValue (false),
+                            MakeBooleanAccessor (
+                            &HwmpProtocol::m_enableLpp),
+                            MakeBooleanChecker ()
+                            )
+            .AddAttribute ( "HopCountMetric",
+                            "Enable use of Hop Count Metric overriding AirTime Metric",
+                            BooleanValue (false),
+                            MakeBooleanAccessor (
+                            &HwmpProtocol::m_hopCntMetric),
+                            MakeBooleanChecker ()
+                            )
+            .AddAttribute ( "UseGeoInformation",
+                            "Modify the Link Metric including a factor that depends on Distance between nodes",
+                            BooleanValue (false),
+                            MakeBooleanAccessor (
+                            &HwmpProtocol::m_useGeoInfo),
+                            MakeBooleanChecker ()
+                            )
             .AddTraceSource("RouteDiscoveryTime",
                             "The time of route discovery procedure",
                             MakeTraceSourceAccessor(&HwmpProtocol::m_routeDiscoveryTimeCallback),

@@ -21,6 +21,9 @@
 
 namespace ns3
 {
+WifiInformationElement::WifiInformationElement()
+{
+}
 
 WifiInformationElement::~WifiInformationElement()
 {

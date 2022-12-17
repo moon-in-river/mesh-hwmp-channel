@@ -425,6 +425,13 @@ class WifiPhy : public Object
      */
     Time GetAckTxTime() const;
     /**
+     * @brief Get the Eifs No Difs objec
+     * add by heyao, 2022
+     *
+     * @return Time
+     */
+    Time GetEifsNoDifs() const;
+    /**
      * Return the estimated BlockAck TX time for this PHY.
      *
      * \return the estimated BlockAck TX time
