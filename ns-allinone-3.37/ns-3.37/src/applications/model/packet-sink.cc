@@ -129,10 +129,12 @@ void
 PacketSink::StartApplication() // Called at time specified by Start
 {
     NS_LOG_FUNCTION(this);
+    std::cout << "\n m_socket : " << m_socket << "\n";
     // Create the socket if not already
     if (!m_socket)
     {
         m_socket = Socket::CreateSocket(GetNode(), m_tid);
+        std::cout << "\n m_local : " << m_local << "\n";
         if (m_socket->Bind(m_local) == -1)
         {
             NS_FATAL_ERROR("Failed to bind socket");

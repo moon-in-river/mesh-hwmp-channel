@@ -311,7 +311,7 @@ WifiPhyOperatingChannel::Set(uint8_t number,
 
     // if a unique channel was not found, throw an exception (mainly for unit testing this code)
     throw std::runtime_error(
-        "WifiPhyOperatingChannel: No unique channel found given the specified criteria");
+        "WifiPhyOperatingChannel: No unique channel found given the specified criteria " + std::to_string(number) + "," + std::to_string(frequency) + "," +  std::to_string(width) + "," + std::to_string(standard) + "," + std::to_string(band));
 }
 
 void
