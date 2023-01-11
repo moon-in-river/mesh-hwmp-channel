@@ -72,6 +72,8 @@ private:
     void CreateNodesC ();
     // Install internet m_stack on nodes
     void InstallInternetStackC ();
+    // Setup the receiving socket in a Sink Node
+    Ptr<Socket> SetupPacketReceive(Ipv4Address addr, Ptr<Node> node);
 };
 MeshTest::MeshTest () :
     m_nnodes (25),
@@ -269,21 +271,30 @@ void MeshTest::InstallApplicationRandom ()
             m_source = rand_nodes->GetInteger (0,m_nnodes-1);
         }
         // Plot the connection values
-        // std::cout << "\n\t Node "<< m_source << " to " << m_dest;
-        // std::cout << "\n Start_time: " << start_time << "s";
-        // std::cout << "\n Stop_time: " << stop_time << "s";
+        std::cout << "\n\t Node "<< m_source << " to " << m_dest;
+        std::cout << "\n Start_time: " << start_time << "s";
+        std::cout << "\n Stop_time: " << stop_time << "s";
         // Define UDP traffic for the onoff application
         OnOffHelper onoff ("ns3::UdpSocketFactory",Address (InetSocketAddress(interfaces.GetAddress (m_dest), m_dest_port)));
         onoff.SetAttribute ("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
         onoff.SetAttribute ("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0]"));
+        AddressValue remoteAddress(InetSocketAddress(interfaces.GetAddress(m_dest), 49001));
+        onoff.SetAttribute ("Remote", remoteAddress);
         apps[i] = onoff.Install (nodes.Get(m_source));
         apps[i].Start (Seconds (start_time));
         apps[i].Stop (Seconds (stop_time));
         // Create a packet sink to receive these packets
-        PacketSinkHelper sink ("ns3::UdpSocketFactory",InetSocketAddress(interfaces.GetAddress (m_dest), 49101));
-        apps[i] = sink.Install (nodes.Get (m_dest));
-        apps[i].Start (Seconds (1.0));
+        Ptr<Socket> sink = SetupPacketReceive(interfaces.GetAddress(m_dest), nodes.Get(m_dest));
     }
+}
+Ptr<Socket> MeshTest::SetupPacketReceive(Ipv4Address addr, Ptr<Node> node)
+{
+    TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
+    Ptr<Socket> sink = Socket::CreateSocket(node, tid);
+    InetSocketAddress local = InetSocketAddress(addr, 49001);
+    sink->Bind(local);
+
+    return sink;
 }
 int MeshTest::Run ()
 {
@@ -311,11 +322,9 @@ int MeshTest::Run ()
     AnimationInterface anim ("output/xml/hwmp-diff-modes-animation.xml");
     anim.SetMobilityPollInterval (Seconds (0.5));
 
-    std::cout << "run";
     Simulator::Schedule (Seconds(m_totalTime), & MeshTest::Report, this);
     Simulator::Stop (Seconds (m_totalTime));
     Simulator::Run ();
-    std::cout << "end";
 
     // Define variables to calculate the metrics
     int k=0;
@@ -334,8 +343,7 @@ int MeshTest::Run ()
     (flowmon.GetClassifier ());
     std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats ();
 
-    for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin ();
-    i != stats.end (); ++i) {
+    for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i) {
         Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
         difftx = i->second.timeLastTxPacket.GetSeconds() -
         i->second.timeFirstTxPacket.GetSeconds();
