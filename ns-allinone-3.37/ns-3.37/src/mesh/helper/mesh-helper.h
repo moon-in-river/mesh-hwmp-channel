@@ -106,7 +106,7 @@ class MeshHelper
      * \brief set the channel policy
      * \param policy the channel policy
      */
-    void SetSpreadInterfaceChannels(ChannelPolicy policy);
+    void SetSpreadInterfaceChannels(enum ChannelPolicy policy);
     /**
      * \brief Set a number of interfaces in a mesh network
      * \param nInterfaces is the number of interfaces

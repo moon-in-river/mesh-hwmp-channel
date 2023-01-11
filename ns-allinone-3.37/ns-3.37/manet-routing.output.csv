@@ -1,0 +1,2 @@
+SimulationSecond,ReceiveRate,PacketsReceived,NumberOfSinks,RoutingProtocol,TransmissionPower
+0,0,0,10,HWMP,7.5

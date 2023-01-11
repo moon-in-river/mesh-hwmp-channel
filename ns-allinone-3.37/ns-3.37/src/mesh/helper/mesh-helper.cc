@@ -63,6 +63,7 @@ NetDeviceContainer
 MeshHelper::Install(const WifiPhyHelper& phyHelper, NodeContainer c) const
 {
     NetDeviceContainer devices;
+    std::cout << "\n\t m_stack: " << m_stack << "\n";
     NS_ASSERT(m_stack);
     for (NodeContainer::Iterator i = c.Begin(); i != c.End(); ++i)
     {

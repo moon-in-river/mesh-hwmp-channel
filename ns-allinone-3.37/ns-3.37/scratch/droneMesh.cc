@@ -193,15 +193,15 @@ MeshTest::MeshTest () :
   m_rfFlag (true),
   m_ns2Mobil (true),
   m_stack ("ns3::Dot11sStack"),
-  m_metric ("airtime"),
-  m_wifiStandard ("80211n2.4"),
+  m_metric ("airtime-b"),
+  m_wifiStandard ("80211a"),
   m_remStaManager ("minstrelht"),
   m_linkRate ("ErpOfdmRate6Mbps"),
   m_propLoss ("friis"),
   m_root ("00:00:00:00:00:01"), // Default: "ff:ff:ff:ff:ff:ff"
   m_UdpTcpMode ("udp"),
   m_asciiFile  ("mesh.tr"),
-  m_scenario ("gm3d-60-1.ns_movements")
+  m_scenario ("/home/heyao/experiments_ns3/ns-allinone-3.37/ns-3.37/scratch/mobile-scenarios/gm3d-60-1.ns_movements")
 {
   // The node that receives the data from all the other nodes
   m_sink = 0;// m_xSize * m_ySize - 1; //15
@@ -252,70 +252,62 @@ MeshTest::Configure (int argc, char *argv[])
   cmd.Parse (argc, argv);
   NS_ASSERT_MSG (m_beaconWinSize < 31, "Maximum Size of Beacons Window is 30.");
   // g_sinkMac = Mac48Address(m_root.c_str());
-  if (m_root != "ff:ff:ff:ff:ff:ff")
-    {
-      g_sinkMac = Mac48Address (m_root.c_str());
-    }
-  else
-    {
-      // if no root is set, then the first node is considered the sink of data
-      g_sinkMac = Mac48Address ("00:00:00:00:00:01");
-    }
+  if (m_root != "ff:ff:ff:ff:ff:ff") {
+    g_sinkMac = Mac48Address (m_root.c_str());
+  } else {
+    // if no root is set, then the first node is considered the sink of data
+    g_sinkMac = Mac48Address ("00:00:00:00:00:01");
+  }
+
   // default metric is airtime, even if a random string is indicated, the routing protocol will use airtime
   if (m_metric == "airtime-b") m_airTimeBMetric = true;
   if (m_metric == "etx") m_etxMetric = true;
   if (m_metric == "hop-count") m_hopCntMetric = true;
   if (m_metric == "srftime") { m_srAirtime = true; m_airTimeBMetric = true; }
 
-  if (m_gridtopology)
-  {
+  if (m_gridtopology) {
     NS_LOG_DEBUG ("Grid: " << m_xSize << "*" << m_ySize);
-  }
-  else
-  {
+  } else {
     NS_LOG_DEBUG ("Custom topology: " << m_nNodes << " nodes" );
   }
+
   NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
-  if (m_ascii)
-    {
-      PacketMetadata::Enable ();
-    }
+  if (m_ascii) {
+    PacketMetadata::Enable ();
+  }
 }
 void
 MeshTest::CreateNodes ()
 {
-  /*
-   * Create m_ySize*m_xSize stations to form a grid topology
-   */
+  // Create m_ySize*m_xSize stations to form a grid topology
   if (m_gridtopology) m_nNodes = m_xSize * m_ySize;
 
   nodes.Create (m_nNodes);
 
   // Configure YansWifiChannel
 
- /* Default YansWifiPhyHelper:
-  * SetErrorRateModel to "ns3::NistErrorRateModel"
-  */
+  /* Default YansWifiPhyHelper:
+   * SetErrorRateModel to "ns3::NistErrorRateModel"
+   */
   YansWifiPhyHelper wifiPhy;
- /*
-  * Configuration of Physical layer parameters
+  /*
+   * Configuration of Physical layer parameters
   */
-//   wifiPhy.Set ("EnergyDetectionThreshold", DoubleValue (-87.0) );  //Default: -96.0
   wifiPhy.Set ("RxSensitivity", DoubleValue (-92.0) );  //Default: -96.0
-  //wifiPhy.Set ("CcaMode1Threshold", DoubleValue (-96.0) );       //Default: -99.0
-  //wifiPhy.Set ("TxGain", DoubleValue (1.0) );                    //Default: 0
-  //wifiPhy.Set ("RxGain", DoubleValue (1.0) );                    //Default: 0
-  //wifiPhy.Set ("TxPowerLevels", UintegerValue (1) );
+  wifiPhy.Set ("CcaEdThreshold", DoubleValue (-58.0) );       //Default: -62.0
+  wifiPhy.Set ("TxGain", DoubleValue (1.0) );                    //Default: 0
+  wifiPhy.Set ("RxGain", DoubleValue (1.0) );                    //Default: 0
+  wifiPhy.Set ("TxPowerLevels", UintegerValue (1) );
   wifiPhy.Set ("TxPowerEnd", DoubleValue (m_txpower) );          //Default: 16.0206
   wifiPhy.Set ("TxPowerStart", DoubleValue (m_txpower) );        //Default: 16.0206
-  //wifiPhy.Set ("RxNoiseFigure", DoubleValue (7.0) );           //Default: 7.0
-  wifiPhy.Set ("Antennas", UintegerValue (2) );
+  wifiPhy.Set ("RxNoiseFigure", DoubleValue (7.0) );           //Default: 7.0
+  wifiPhy.Set ("Antennas", UintegerValue (2) );                 // Default: 1
   ///Parameters specific for 802.11n:
-//   wifiPhy.Set ("GreenfieldEnabled", BooleanValue (false) ); // removed in 3.37
+  //   wifiPhy.Set ("GreenfieldEnabled", BooleanValue (false) ); // removed in 3.37
   ///Parameters specific for 802.11n/ac/ax:
   wifiPhy.Set ("MaxSupportedTxSpatialStreams", UintegerValue (1) );
   wifiPhy.Set ("MaxSupportedRxSpatialStreams", UintegerValue (1) );
-//   wifiPhy.Set ("ShortGuardEnabled", BooleanValue (false) ); // removed in 3.37
+  //   wifiPhy.Set ("ShortGuardEnabled", BooleanValue (false) ); // removed in 3.37
 
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper ();
 
@@ -363,24 +355,19 @@ MeshTest::CreateNodes ()
    * mesh point device
    */
   mesh = MeshHelper::Default ();
-  if (!Mac48Address (m_root.c_str ()).IsBroadcast ())
-    {
+  if (!Mac48Address (m_root.c_str ()).IsBroadcast ()) {
       mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue (Mac48Address (m_root.c_str ())));
-    }
-  else
-    {
-      //If root is not set, we do not use "Root" attribute, because it
-      //is specified only for 11s
-      mesh.SetStackInstaller (m_stack);
-    }
-  if (m_chan)
-    {
-      mesh.SetSpreadInterfaceChannels (MeshHelper::SPREAD_CHANNELS);
-    }
-  else
-    {
-      mesh.SetSpreadInterfaceChannels (MeshHelper::ZERO_CHANNEL);
-    }
+  } else {
+    //If root is not set, we do not use "Root" attribute, because it
+    //is specified only for 11s
+    mesh.SetStackInstaller (m_stack);
+  }
+
+  if (m_chan) {
+    mesh.SetSpreadInterfaceChannels (MeshHelper::SPREAD_CHANNELS);
+  } else{
+    mesh.SetSpreadInterfaceChannels (MeshHelper::ZERO_CHANNEL);
+  }
 
   if (m_remStaManager == "arf")           mesh.SetRemoteStationManager ("ns3::ArfWifiManager");
   if (m_remStaManager == "minstrel")      mesh.SetRemoteStationManager ("ns3::MinstrelWifiManager");
@@ -402,13 +389,11 @@ MeshTest::CreateNodes ()
 
   MobilityHelper mobility;
   // Setup ns2 mobility
-  if (m_ns2Mobil)
-  {
+  if (m_ns2Mobil) {
     Ns2MobilityHelper ns2mobility = Ns2MobilityHelper(m_scenario);
     ns2mobility.Install();
   }
-  else if (m_gridtopology)
-  {
+  else if (m_gridtopology) {
     // Setup mobility - static grid topology
     mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
                                  "MinX", DoubleValue (0.0),
@@ -417,12 +402,10 @@ MeshTest::CreateNodes ()
                                  "DeltaY", DoubleValue (m_step),
                                  "GridWidth", UintegerValue (m_xSize),
                                  "LayoutType", StringValue ("RowFirst"));
-
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (nodes);
   }
-  else
-  {
+  else {
     // Setup static node locations from file
     switch (m_nNodes) {
       case 20:
@@ -448,13 +431,13 @@ MeshTest::CreateNodes ()
     mobility.Install (nodes);
   }
 
-  if (m_pcap)
+  if (m_pcap) {
     wifiPhy.EnablePcapAll (std::string ("mp-"));
-  if (m_ascii)
-    {
-      AsciiTraceHelper ascii;
-      wifiPhy.EnableAsciiAll (ascii.CreateFileStream (m_asciiFile));
-    }
+  }
+  if (m_ascii) {
+    AsciiTraceHelper ascii;
+    wifiPhy.EnableAsciiAll (ascii.CreateFileStream (m_asciiFile));
+  }
 }
 void
 MeshTest::InstallInternetStack ()
