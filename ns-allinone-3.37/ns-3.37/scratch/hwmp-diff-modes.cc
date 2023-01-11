@@ -76,19 +76,19 @@ private:
     Ptr<Socket> SetupPacketReceive(Ipv4Address addr, Ptr<Node> node);
 };
 MeshTest::MeshTest () :
-    m_nnodes (25),
-    m_nconn (28), // total connections
+    m_nnodes (20), // 20 Proactive
+    m_nconn (20), // total connections; 20 Proactive
     m_nconnR (0), // total connections to root node. increase 7, compare influnence for hwmp-r and hwmp-p under outer or innet traffic
-    m_step (720),
+    m_step (450), // 720 Proactive
     m_randomStart (0.5),
-    m_totalTime (240),
+    m_totalTime (180), // 240s Proactive
     m_packetSize (1024),
     m_nIfaces (2),
     m_chan (false),
     m_pcap (false),
     m_stack ("ns3::Dot11sStack"),
-    m_reactive (0),
-    m_txrate ("120kbps")
+    m_reactive (1),
+    m_txrate ("150kbps") // 120kbps Proactive
 {
 }
 void
@@ -110,8 +110,8 @@ void MeshTest::CreateNodes () {
     UniformRandomVariable x, y;
     MobilityHelper mobility;
     mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-        "X", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=720.0]"),
-        "Y", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=360.0]")
+        "X", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=450.0]"), // 720 Proactive
+        "Y", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=150.0]") // 360 Proactive
     );
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (nodes);
@@ -144,7 +144,7 @@ void MeshTest::CreateNodes () {
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::Dot11MeshHWMPmaxPREQretries",UintegerValue (5));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::UnicastPreqThreshold",UintegerValue (10));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::UnicastDataThreshold",UintegerValue (5));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::DoFlag", BooleanValue (false));
+    Config::SetDefault ("ns3::dot11s::HwmpProtocol::DoFlag", BooleanValue (true));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::RfFlag", BooleanValue (true));
     // Create mesh helper and set stack installer to it
     // Stack installer creates all needed protocols and install them to device
@@ -157,7 +157,6 @@ void MeshTest::CreateNodes () {
     );
     // Set number of interfaces - default is single-interface mesh point
     mesh.SetNumberOfInterfaces (m_nIfaces);
-    // mesh.SetStackInstaller (m_stack);
     if (m_reactive == 1) {
         //If reactive mode is on, we do not use "Root" attribute
         m_root = "Reactive mode";
@@ -187,6 +186,7 @@ void MeshTest::CreateNodesC ()
     WifiChannel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel","Exponent", StringValue ("2.7"));
     WifiPhy.SetChannel (WifiChannel.Create ());
     meshC = MeshHelper::Default ();
+    meshC.SetStackInstaller(m_stack);
     meshDevicesC = meshC.Install (WifiPhy, nodesC);
     // This extra node is placed far away to not interfere
     Vector3D n1_posC (m_step*3, m_step*3, m_step*3);
@@ -238,7 +238,7 @@ void MeshTest::InstallApplicationRandom ()
     for (int i = 0; i < m_nconn; i++){
         start_time = a->GetValue(50, m_totalTime - 15);
         Ptr<ExponentialRandomVariable> b = CreateObject<ExponentialRandomVariable>();
-        duration = b->GetValue(30, 50)+1;
+        duration = b->GetValue(25, 50)+1; // 30 Proactive
         // If the exponential variable gives us a value that added to the start time
         // is greater than the maximum permitted, this is changed for the maximum
         // 10 seconds are left at the end to calculate well the statistics of each flow
