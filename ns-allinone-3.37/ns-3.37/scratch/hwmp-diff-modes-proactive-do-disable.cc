@@ -85,7 +85,7 @@ MeshTest::MeshTest () :
     m_chan (false),
     m_pcap (false),
     m_stack ("ns3::Dot11sStack"),
-    m_reactive (1),
+    m_reactive (0),
     m_txrate ("150kbps") // 120kbps Proactive
 {
 }
@@ -141,7 +141,7 @@ void MeshTest::CreateNodes () {
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::Dot11MeshHWMPmaxPREQretries",UintegerValue (5));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::UnicastPreqThreshold",UintegerValue (10));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::UnicastDataThreshold",UintegerValue (5));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::DoFlag", BooleanValue (false));
+    Config::SetDefault ("ns3::dot11s::HwmpProtocol::DoFlag", BooleanValue (true));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::RfFlag", BooleanValue (true));
     // Create mesh helper and set stack installer to it
     // Stack installer creates all needed protocols and install them to device
@@ -394,7 +394,7 @@ int MeshTest::Run ()
     std::cout << "Total Delay: " << delay_total << " s\n";
     //print all nodes statistics in files
     std::ostringstream os;
-    std::string prename = "output/txt/HWMP-P-vs-R-";
+    std::string prename = "output/txt/HWMP-P-vs-R-P-Do-Disable";
     os << prename << "_PDF.txt";
     std::ofstream of (os.str().c_str(), std::ios::out | std::ios::app);
     of << pdf_total << "\n";
