@@ -29,7 +29,6 @@ private:
     int m_nnodes; // number of nodes
     int m_nconn; // number of connections
     int m_nconnR; // number of connections to the root
-    double m_step;
     double m_randomStart;
     double m_totalTime;
     uint16_t m_packetSize;
@@ -37,7 +36,6 @@ private:
     bool m_chan;
     bool m_pcap;
     std::string m_stack;
-    int m_reactive;
     std::string m_txrate;
     //to calculate the lenght of the simulation
     float m_timeTotal, m_timeStart, m_timeEnd;
@@ -49,14 +47,6 @@ private:
     Ipv4InterfaceContainer interfaces;
     // MeshHelper. Report is not static methods
     MeshHelper mesh;
-    // List of network nodes
-    NodeContainer nodesC;
-    // List of all mesh point devices
-    NetDeviceContainer meshDevicesC;
-    //Addresses of interfaces:
-    Ipv4InterfaceContainer interfacesC;
-    // MeshHelper. Report is not static methods
-    MeshHelper meshC;
 private:
     // Create nodes and setup their mobility
     void CreateNodes ();
@@ -66,26 +56,20 @@ private:
     void InstallApplicationRandom ();
     // Print mesh devices diagnostics
     void Report ();
-    // Create nodes and setup their mobility
-    void CreateNodesC ();
-    // Install internet m_stack on nodes
-    void InstallInternetStackC ();
     // Setup the receiving socket in a Sink Node
     Ptr<Socket> SetupPacketReceive(Ipv4Address addr, Ptr<Node> node);
 };
 MeshTest::MeshTest () :
-    m_nnodes (20), // 25 Proactive
-    m_nconn (20), // total connections; 28 Proactive
+    m_nnodes (50), // 25 Proactive
+    m_nconn (5), // total connections; 28 Proactive
     m_nconnR (0), // total connections to root node. increase 7, compare influnence for hwmp-r and hwmp-p under outer or innet traffic
-    m_step (450), // 720 Proactive
     m_randomStart (0.5),
-    m_totalTime (180), // 240s Proactive
+    m_totalTime (240), // 240s Proactive
     m_packetSize (1024),
     m_nIfaces (2),
     m_chan (false),
     m_pcap (false),
     m_stack ("ns3::Dot11sStack"),
-    m_reactive (1),
     m_txrate ("150kbps") // 120kbps Proactive
 {
 }
@@ -93,10 +77,8 @@ void
 MeshTest::Configure (int argc, char *argv[])
 {
     CommandLine cmd;
-    cmd.AddValue ("m_step", "Separation", m_step);
     cmd.AddValue ("m_nconn", "Number of connections", m_nconn);
     cmd.AddValue ("m_nconnR", "Number of root connections", m_nconnR);
-    cmd.AddValue ("m_reactive", "Mode type", m_reactive);
     cmd.Parse (argc, argv);
 }
 void MeshTest::CreateNodes () {
@@ -134,7 +116,7 @@ void MeshTest::CreateNodes () {
     Config::SetDefault ("ns3::dot11s::PeerLink::MaxRetries", UintegerValue (4));
     Config::SetDefault ("ns3::dot11s::PeerLink::MaxPacketFailure", UintegerValue (5));
     // Configure the parameters of the Peer Management Protocol
-    Config::SetDefault ("ns3::dot11s::PeerManagementProtocol::EnableBeaconCollisionAvoidance", BooleanValue (false)); // can't be change
+    Config::SetDefault ("ns3::dot11s::PeerManagementProtocol::EnableBeaconCollisionAvoidance", BooleanValue (false));
     // Configure the parameters of the HWMP
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::Dot11MeshHWMPactivePathTimeout",TimeValue (Seconds (100)));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::Dot11MeshHWMPactiveRootTimeout",TimeValue (Seconds (100)));
@@ -154,15 +136,9 @@ void MeshTest::CreateNodes () {
     );
     // Set number of interfaces - default is single-interface mesh point
     mesh.SetNumberOfInterfaces (m_nIfaces);
-    if (m_reactive == 1) {
-        //If reactive mode is on, we do not use "Root" attribute
-        m_root = "Reactive mode";
-        mesh.SetStackInstaller (m_stack);
-    } else {
-        //If proactive mode is on, we define node 6 as root
-        m_root = "00:00:00:00:00:06";
-        mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue(Mac48Address (m_root.c_str ())));
-    }
+    //If proactive mode is on, we define node 6 as root
+    m_root = "00:00:00:00:00:06";
+    mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue(Mac48Address (m_root.c_str ())));
     std::cout << "\n\t root: " << m_root << "\n";
     //If multiple channels is activated
     if (m_chan) {
@@ -173,28 +149,6 @@ void MeshTest::CreateNodes () {
     // Install protocols and return container if MeshPointDevices
     meshDevices = mesh.Install (WifiPhy, nodes);
 }
-void MeshTest::CreateNodesC ()
-{
-    // We only create the extra node
-    nodesC.Create (1);
-    YansWifiPhyHelper WifiPhy;
-    YansWifiChannelHelper WifiChannel;
-    WifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-    WifiChannel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel","Exponent", StringValue ("2.7"));
-    WifiPhy.SetChannel (WifiChannel.Create ());
-    meshC = MeshHelper::Default ();
-    meshC.SetStackInstaller(m_stack);
-    meshDevicesC = meshC.Install (WifiPhy, nodesC);
-    // This extra node is placed far away to not interfere
-    Vector3D n1_posC (m_step*3, m_step*3, m_step*3);
-
-    ListPositionAllocator myListPositionAllocatorC;
-    myListPositionAllocatorC.Add(n1_posC);
-    MobilityHelper mobilityC;
-    mobilityC.SetPositionAllocator(&myListPositionAllocatorC);
-    mobilityC.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-    mobilityC.Install (nodesC);
-}
 void MeshTest::InstallInternetStack ()
 {
     //Install the internet protocol stack on all nodes
@@ -204,16 +158,6 @@ void MeshTest::InstallInternetStack ()
     Ipv4AddressHelper address;
     address.SetBase ("192.168.1.0", "255.255.255.0");
     interfaces = address.Assign (meshDevices);
-}
-void MeshTest::InstallInternetStackC ()
-{
-    //Install the internet protocol stack on all nodes
-    InternetStackHelper internetStack;
-    internetStack.Install (nodesC);
-    //Assign IP addresses to the extra node is also from another network
-    Ipv4AddressHelper address;
-    address.SetBase ("192.168.2.0", "255.255.255.0");
-    interfacesC = address.Assign (meshDevicesC);
 }
 void MeshTest::InstallApplicationRandom ()
 {
@@ -235,7 +179,7 @@ void MeshTest::InstallApplicationRandom ()
     for (int i = 0; i < m_nconn; i++){
         start_time = a->GetValue(50, m_totalTime - 15);
         Ptr<ExponentialRandomVariable> b = CreateObject<ExponentialRandomVariable>();
-        duration = b->GetValue(25, 50)+1; // 30 Proactive
+        duration = b->GetValue(25, 30)+1; // 30 Proactive
         // If the exponential variable gives us a value that added to the start time
         // is greater than the maximum permitted, this is changed for the maximum
         // 10 seconds are left at the end to calculate well the statistics of each flow
@@ -295,16 +239,6 @@ int MeshTest::Run ()
 {
     CreateNodes ();
     InstallInternetStack ();
-    // In this mesh implementation when the proactive mode is used, when creating
-    // the root node this counts as if there was another node. Thus, when using
-    // the seed for the random variables it gives different values in reactive
-    // and proactive mode. To solve this, in reactive mode a fake mode that does
-    // not communicate neither interfere is created.
-    if (m_reactive == 1) {
-        CreateNodesC ();
-        InstallInternetStackC ();
-        std::cout << "\n Node: Installing extra node to compensate the root\n";
-    }
 
     InstallApplicationRandom ();
 
@@ -314,8 +248,8 @@ int MeshTest::Run ()
     m_timeStart=clock();
 
     //NetAnim
-    AnimationInterface anim ("output/xml/hwmp-diff-modes-animation.xml");
-    anim.SetMobilityPollInterval (Seconds (0.5));
+    // AnimationInterface anim ("output/xml/hao-hwmp-p.xml");
+    // anim.SetMobilityPollInterval (Seconds (0.5));
 
     Simulator::Schedule (Seconds(m_totalTime), & MeshTest::Report, this);
     Simulator::Stop (Seconds (m_totalTime));
@@ -334,8 +268,7 @@ int MeshTest::Run ()
     double pdf_total, rxbitrate_total, delay_total;
     //Print per flow statistics
     monitor->CheckForLostPackets ();
-    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>
-    (flowmon.GetClassifier ());
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier ());
     std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats ();
 
     for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i) {
@@ -394,17 +327,18 @@ int MeshTest::Run ()
     std::cout << "Total Delay: " << delay_total << " s\n";
     //print all nodes statistics in files
     std::ostringstream os;
-    os << "output/txt/HWMP-P-vs-R_PDF.txt";
+    std::string prename = "output/txt/hao-hwmp-p-";
+    os << prename << "PDF.txt";
     std::ofstream of (os.str().c_str(), std::ios::out | std::ios::app);
     of << pdf_total << "\n";
     of.close ();
     std::ostringstream os2;
-    os2 << "output/txt/HWMP-P-vs-R_Delay.txt";
+    os2 << prename << "Delay.txt";
     std::ofstream of2 (os2.str().c_str(), std::ios::out | std::ios::app);
     of2 << delay_total << "\n";
     of2.close ();
     std::ostringstream os3;
-    os3 << "output/txt/HWMP-P-vs-R_Throu.txt";
+    os3 << prename << "Throu.txt";
     std::ofstream of3 (os3.str().c_str(), std::ios::out | std::ios::app);
     of3 << rxbitrate_total << "\n";
     of3.close ();
@@ -418,11 +352,10 @@ void MeshTest::Report () {
     // Using this function we print detailed statistics of each mesh point device
     // These statistics are used later with an AWK files to extract routing metrics
     unsigned n (0);
-    for (NetDeviceContainer::Iterator i = meshDevices.Begin ();
-    i != meshDevices.End (); ++i, ++n) {
+    for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i, ++n) {
         std::ostringstream os;
         //os << "mp-report1-" << n << ".xml";
-        os << "output/xml/hwmp-diff-modes-report.xml";
+        // os << "output/xml/hwmp-diff-modes-report.xml";
         std::ofstream of;
         of.open (os.str().c_str(), std::ios::out | std::ios::app);
         if (! of.is_open ())
