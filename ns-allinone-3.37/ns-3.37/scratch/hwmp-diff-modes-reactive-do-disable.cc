@@ -37,6 +37,7 @@ private:
     bool m_chan;
     bool m_pcap;
     std::string m_stack;
+    int m_reactive;
     std::string m_txrate;
     //to calculate the lenght of the simulation
     float m_timeTotal, m_timeStart, m_timeEnd;
@@ -73,7 +74,7 @@ private:
     Ptr<Socket> SetupPacketReceive(Ipv4Address addr, Ptr<Node> node);
 };
 MeshTest::MeshTest () :
-    m_nnodes (50), // 25 Proactive
+    m_nnodes (20), // 25 Proactive
     m_nconn (20), // total connections; 28 Proactive
     m_nconnR (8), // total connections to root node. increase 7, compare influnence for hwmp-r and hwmp-p under outer or innet traffic
     m_step (450), // 720 Proactive
@@ -84,6 +85,7 @@ MeshTest::MeshTest () :
     m_chan (false),
     m_pcap (false),
     m_stack ("ns3::Dot11sStack"),
+    m_reactive (1),
     m_txrate ("150kbps") // 120kbps Proactive
 {
 }
@@ -94,6 +96,7 @@ MeshTest::Configure (int argc, char *argv[])
     cmd.AddValue ("m_step", "Separation", m_step);
     cmd.AddValue ("m_nconn", "Number of connections", m_nconn);
     cmd.AddValue ("m_nconnR", "Number of root connections", m_nconnR);
+    cmd.AddValue ("m_reactive", "Mode type", m_reactive);
     cmd.Parse (argc, argv);
 }
 void MeshTest::CreateNodes () {
@@ -138,7 +141,7 @@ void MeshTest::CreateNodes () {
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::Dot11MeshHWMPmaxPREQretries",UintegerValue (5));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::UnicastPreqThreshold",UintegerValue (10));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::UnicastDataThreshold",UintegerValue (5));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::DoFlag", BooleanValue (true));
+    Config::SetDefault ("ns3::dot11s::HwmpProtocol::DoFlag", BooleanValue (false));
     Config::SetDefault ("ns3::dot11s::HwmpProtocol::RfFlag", BooleanValue (true));
     // Create mesh helper and set stack installer to it
     // Stack installer creates all needed protocols and install them to device
@@ -151,9 +154,15 @@ void MeshTest::CreateNodes () {
     );
     // Set number of interfaces - default is single-interface mesh point
     mesh.SetNumberOfInterfaces (m_nIfaces);
-    //If proactive mode is on, we define node 6 as root
-    m_root = "00:00:00:00:00:06";
-    mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue(Mac48Address (m_root.c_str ())));
+    if (m_reactive == 1) {
+        //If reactive mode is on, we do not use "Root" attribute
+        m_root = "Reactive mode";
+        mesh.SetStackInstaller (m_stack);
+    } else {
+        //If proactive mode is on, we define node 6 as root
+        m_root = "00:00:00:00:00:06";
+        mesh.SetStackInstaller (m_stack, "Root", Mac48AddressValue(Mac48Address (m_root.c_str ())));
+    }
     std::cout << "\n\t root: " << m_root << "\n";
     //If multiple channels is activated
     if (m_chan) {
@@ -286,6 +295,16 @@ int MeshTest::Run ()
 {
     CreateNodes ();
     InstallInternetStack ();
+    // In this mesh implementation when the proactive mode is used, when creating
+    // the root node this counts as if there was another node. Thus, when using
+    // the seed for the random variables it gives different values in reactive
+    // and proactive mode. To solve this, in reactive mode a fake mode that does
+    // not communicate neither interfere is created.
+    if (m_reactive == 1) {
+        CreateNodesC ();
+        InstallInternetStackC ();
+        std::cout << "\n Node: Installing extra node to compensate the root\n";
+    }
 
     InstallApplicationRandom ();
 
@@ -375,7 +394,7 @@ int MeshTest::Run ()
     std::cout << "Total Delay: " << delay_total << " s\n";
     //print all nodes statistics in files
     std::ostringstream os;
-    std::string prename = "output/txt/HWMP-P-vs-R-P-Do-Enable";
+    std::string prename = "output/txt/HWMP-P-vs-R-";
     os << prename << "_PDF.txt";
     std::ofstream of (os.str().c_str(), std::ios::out | std::ios::app);
     of << pdf_total << "\n";

@@ -11,12 +11,16 @@
 #include "ns3/flow-monitor-helper.h"
 #include "ns3/ipv4-flow-classifier.h"
 #include "ns3/netanim-module.h"
-#include "ns3/netanim-module.h"
+#include "ns3/wave-mac-helper.h"
+#include "ns3/olsr-module.h"
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <vector>
+
 using namespace ns3;
+
 class MeshTest {
 public:
     // Init test
@@ -26,27 +30,26 @@ public:
     // Run test
     int Run ();
 private:
-    int m_xSize; //x size of the grid
-    int m_ySize; //y size of the grid
-    double m_step; //separation between nodes
-    double m_randomStart;
+    int m_nnodes;
+    int m_nconn;
+    int m_nconnR;
     double m_totalTime;
     uint16_t m_packetSize;
-    uint32_t m_nIfaces;
-    bool m_chan;
     bool m_pcap;
-    std::string m_stack;
     std::string m_txrate;
+    double m_txrate_dob;
     //to calculate the lenght of the simulation
     float m_timeTotal, m_timeStart, m_timeEnd;
+    // uint32_t bytesTotal;      //!< Total received bytes.
+    // uint32_t packetsReceived; //!< Total received packets.
     // List of network nodes
     NodeContainer nodes;
-    // List of all mesh point devices
-    NetDeviceContainer meshDevices;
-    // Addresses of interfaces:
+    // List of all wifi devices
+    NetDeviceContainer wifiDevices;
+    //Addresses of interfaces:
     Ipv4InterfaceContainer interfaces;
     // MeshHelper. Report is not static methods
-    MeshHelper mesh;
+    WifiHelper wifi_aodv;
 private:
     // Create nodes and setup their mobility
     void CreateNodes ();
@@ -54,57 +57,37 @@ private:
     void InstallInternetStack ();
     // Install applications randomly
     void InstallApplicationRandom ();
-    // Print mesh devices diagnostics
-    void Report ();
     // Setup the receiving socket in a Sink Node
-    Ptr<Socket> SetupPacketReceive(Ipv4Address addr, Ptr<Node> node);
+    Ptr<Socket> SetupPacketReceive(Ipv4Address addr, Ptr<Node> node, int port);
+    // void ReceivePacket(Ptr<Socket> socket);
 };
 MeshTest::MeshTest () :
-    m_xSize (5),
-    m_ySize (5),
-    m_step (170),
-    m_randomStart (0.1),
+    m_nnodes (50), // 25 Proactive
+    m_nconn (25), // total connections; 28 Proactive
+    m_nconnR (0), // total connections to root node. increase 7, compare influnence for hwmp-r and hwmp-p under outer or innet traffic
     m_totalTime (240),
     m_packetSize (1024),
-    m_nIfaces (1),
-    m_chan (false),
     m_pcap (false),
-    m_stack ("ns3::Dot11sStack"),
-    m_txrate ("150kbps")
+    m_txrate ("150kbps"),
+    m_txrate_dob (150) //needed in kbps for the trace file
 {
 }
-void MeshTest::Configure (int argc, char *argv[])
-{
+void MeshTest::Configure (int argc, char *argv[]) {
     CommandLine cmd;
-    cmd.AddValue ("m_xSize", "m_xSize", m_xSize);
-    cmd.AddValue ("m_ySize", "m_ySize", m_ySize);
-    cmd.AddValue ("m_txrate", "m_txrate", m_txrate);
+    cmd.AddValue ("m_nconn", "Number of connections", m_nconn);
+    cmd.AddValue ("m_nconnR", "Number of root connections", m_nconnR);
+    cmd.AddValue ("m_txrate_dob", "m_txrate_dob", m_txrate_dob);
     cmd.Parse (argc, argv);
 }
-// Create the nodes
 void MeshTest::CreateNodes () {
     double m_txpower = 18.0; // dbm
-    // Calculate m_ySize*m_xSize stations grid topology
-    double position_x = 0;
-    double position_y = 0;
-    ListPositionAllocator myListPositionAllocator;
-    for (int i = 1; i <= m_xSize; i++) {
-        for (int j = 1; j <= m_ySize; j++) {
-            std::cout << "Node at x = " << position_x << ", y = " << position_y << "\n";
-            Vector3D n_pos (position_x, position_y, 0.0);
-            myListPositionAllocator.Add(n_pos);
-            position_y += m_step;
-        }
-        position_y = 0;
-        position_x += m_step;
-    }
     // Create the nodes
-    nodes.Create (m_xSize*m_ySize);
+    nodes.Create (m_nnodes);
     // Configure YansWifiChannel
     YansWifiPhyHelper WifiPhy;
     // WifiPhy.Set ("EnergyDetectionThreshold", DoubleValue (-89.0) );
-    WifiPhy.Set ("RxSensitivity", DoubleValue (-92.0) );
-    WifiPhy.Set ("CcaEdThreshold", DoubleValue (-58.0) );
+    WifiPhy.Set ("RxSensitivity", DoubleValue (-98.0));  //Default: -101.0
+    WifiPhy.Set ("CcaEdThreshold", DoubleValue (-62.0));       //Default: -62.0
     // WifiPhy.Set ("CcaMode1Threshold", DoubleValue (-62.0) );
     WifiPhy.Set ("TxGain", DoubleValue (1.0) );
     WifiPhy.Set ("RxGain", DoubleValue (1.0) );
@@ -116,66 +99,49 @@ void MeshTest::CreateNodes () {
     WifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
     WifiChannel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel","Exponent",StringValue ("2.7"));
     WifiPhy.SetChannel (WifiChannel.Create ());
-    // Configure the parameters of the Peer Link
-    Config::SetDefault ("ns3::dot11s::PeerLink::MaxBeaconLoss", UintegerValue (20));
-    Config::SetDefault ("ns3::dot11s::PeerLink::MaxRetries", UintegerValue (4));
-    Config::SetDefault ("ns3::dot11s::PeerLink::MaxPacketFailure", UintegerValue (5));
-    // Configure the parameters of the Peer Management Protocol
-    Config::SetDefault ("ns3::dot11s::PeerManagementProtocol::EnableBeaconCollisionAvoidance",BooleanValue (false));
-    // Configure the parameters of the HWMP
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::Dot11MeshHWMPactivePathTimeout",TimeValue (Seconds (100)));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::Dot11MeshHWMPactiveRootTimeout",TimeValue (Seconds (100)));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::Dot11MeshHWMPmaxPREQretries",UintegerValue (5));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::UnicastPreqThreshold",UintegerValue (10));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::UnicastDataThreshold",UintegerValue (5));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::DoFlag", BooleanValue (false));
-    Config::SetDefault ("ns3::dot11s::HwmpProtocol::RfFlag", BooleanValue (true));
-    // Stack installer creates all protocols and install them to mesh point device
-
-    mesh = MeshHelper::Default ();
-    mesh.SetStandard (WIFI_STANDARD_80211a);
-    mesh.SetMacType ("RandomStart", TimeValue (Seconds(m_randomStart)));
-    mesh.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+    wifi_aodv.SetStandard (WIFI_STANDARD_80211a);
+    wifi_aodv.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
         "DataMode", StringValue ("OfdmRate6Mbps"),
         "RtsCtsThreshold", UintegerValue (2500)
     );
-    // Set number of interfaces - default is single-interface mesh point
-    mesh.SetNumberOfInterfaces (m_nIfaces);
-    mesh.SetStackInstaller (m_stack);
-    //If multiple channels is activated
-    if (m_chan) {
-        mesh.SetSpreadInterfaceChannels (MeshHelper::SPREAD_CHANNELS);
-    } else {
-        mesh.SetSpreadInterfaceChannels (MeshHelper::ZERO_CHANNEL);
-    }
-    // Install protocols and return container if MeshPointDevices
-    meshDevices = mesh.Install (WifiPhy, nodes);
+    // Install protocols and returnf container
+    // NqosWaveMacHelper wifiMac = NqosWaveMacHelper::Default();
+    WifiMacHelper wifiMac;
+    // wifiMac.SetType ("ns3::OcbWifiMac");
+    wifiMac.SetType ("ns3::AdhocWifiMac");
+    wifiDevices = wifi_aodv.Install (WifiPhy, wifiMac, nodes);
     // Place the protocols in the positions calculated before
     MobilityHelper mobility;
-    mobility.SetPositionAllocator(&myListPositionAllocator);
+    mobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+        "X", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=450.0]"), // 720 Proactive
+        "Y", StringValue("ns3::UniformRandomVariable[Min=0.0|Max=150.0]") // 360 Proactive
+    );
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (nodes);
 }
 void MeshTest::InstallInternetStack () {
+    //configure OLSR
+    OlsrHelper olsr;
+    olsr.Set ("HelloInterval", TimeValue (Seconds (3)));
     //Install the internet protocol stack on all nodes
     InternetStackHelper internetStack;
+    internetStack.SetRoutingHelper (olsr);
     internetStack.Install (nodes);
-    //Assign IP addresses to the devices interfaces
+    //Assign IP addresses to the devices interfaces (m_nIfaces)
     Ipv4AddressHelper address;
     address.SetBase ("192.168.1.0", "255.255.255.0");
-    interfaces = address.Assign (meshDevices);
+    interfaces = address.Assign (wifiDevices);
 }
 void MeshTest::InstallApplicationRandom () {
     // Create as many connections as nodes has the grid
-    int m_nconn = m_xSize * m_ySize;
-
+    int ir=0;
     int m_source, m_dest, m_dest_port;
     char num [2];
     char onoff [7];
     char sink [6];
     double start_time, stop_time, duration;
     // Set the parameters of the onoff application
-    Config::SetDefault ("ns3::OnOffApplication::PacketSize", UintegerValue(m_packetSize));
+    Config::SetDefault ("ns3::OnOffApplication::PacketSize",UintegerValue (m_packetSize));
     Config::SetDefault ("ns3::OnOffApplication::DataRate", StringValue (m_txrate));
     ApplicationContainer apps [m_nconn];
     Ptr<UniformRandomVariable> rand_nodes = CreateObject<UniformRandomVariable>();
@@ -191,7 +157,7 @@ void MeshTest::InstallApplicationRandom () {
         // 10 seconds are left at the end to calculate well the statistics of each flow
         if ( (start_time + duration) > (m_totalTime - 10)){
             stop_time = m_totalTime-10;
-        }else{
+        }else {
             stop_time = start_time + duration;
         }
         // Create different names for the connections
@@ -202,14 +168,17 @@ void MeshTest::InstallApplicationRandom () {
         strcat(onoff,num);
         strcat(sink,num);
         // Set random variables of the destination (server) and destination port.
-        m_dest = rand_nodes->GetInteger (0,m_nconn-1);
+        m_dest = rand_nodes->GetInteger (0,m_nnodes-1);
         m_dest_port = rand_port->GetInteger (49000,49100);
-
+        if (ir < m_nconnR) {
+            m_dest = 5;
+            ir++;
+        }
         // Set random variables of the source (client)
-        m_source = rand_nodes->GetInteger (0,m_nconn-1);
+        m_source = rand_nodes->GetInteger (0,m_nnodes-1);
         // Client and server can not be the same node.
         while (m_source == m_dest){
-            m_source = rand_nodes->GetInteger (0,m_nconn-1);
+            m_source = rand_nodes->GetInteger (0,m_nnodes-1);
         }
         // Plot the connection values
         std::cout << "\n Node "<< m_source << " to " << m_dest;
@@ -219,19 +188,19 @@ void MeshTest::InstallApplicationRandom () {
         OnOffHelper onoff ("ns3::UdpSocketFactory", Address (InetSocketAddress(interfaces.GetAddress (m_dest), m_dest_port)));
         onoff.SetAttribute ("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
         onoff.SetAttribute ("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0]"));
-        AddressValue remoteAddress(InetSocketAddress(interfaces.GetAddress(m_dest), 49001));
+        AddressValue remoteAddress(InetSocketAddress(interfaces.GetAddress(m_dest), m_dest_port));
         onoff.SetAttribute ("Remote", remoteAddress);
         apps[i] = onoff.Install (nodes.Get(m_source));
         apps[i].Start (Seconds (start_time));
         apps[i].Stop (Seconds (stop_time));
         // Create a packet sink to receive the packets
-        Ptr<Socket> sink = SetupPacketReceive(interfaces.GetAddress(m_dest), nodes.Get(m_dest));
+        Ptr<Socket> sink = SetupPacketReceive(interfaces.GetAddress(m_dest), nodes.Get(m_dest), m_dest_port);
     }
 }
-Ptr<Socket> MeshTest::SetupPacketReceive(Ipv4Address addr, Ptr<Node> node) {
+Ptr<Socket> MeshTest::SetupPacketReceive(Ipv4Address addr, Ptr<Node> node, int port) {
     TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
     Ptr<Socket> sink = Socket::CreateSocket(node, tid);
-    InetSocketAddress local = InetSocketAddress(addr, 49001);
+    InetSocketAddress local = InetSocketAddress(addr, port);
     sink->Bind(local);
     return sink;
 }
@@ -242,22 +211,24 @@ int MeshTest::Run () {
     // Install FlowMonitor on all nodes
     FlowMonitorHelper flowmon;
     Ptr<FlowMonitor> monitor = flowmon.InstallAll();
-    m_timeStart=clock();
 
     //NetAnim
-    AnimationInterface anim ("output/xml/hwmp-vs-aodv-hwmp-animation.xml");
+    AnimationInterface anim ("output/xml/hao-olsr.xml");
     anim.SetMobilityPollInterval (Seconds (0.5));
 
-    Simulator::Schedule (Seconds(m_totalTime), & MeshTest::Report, this);
+    m_timeStart=clock();
     Simulator::Stop (Seconds (m_totalTime));
     Simulator::Run ();
-
     // Define variables to calculate the metrics
     int k=0;
     int totaltxPackets = 0;
     int totalrxPackets = 0;
+    int totaltxPacketsR = 0;
+    int totalrxPacketsR = 0;
     double totaltxbytes = 0;
     double totalrxbytes = 0;
+    double totaltxbytesR = 0;
+    double totalrxbytesR = 0;
     double totaldelay = 0;
     double totalrxbitrate = 0;
     double difftx, diffrx;
@@ -265,8 +236,7 @@ int MeshTest::Run () {
     double pdf_total, rxbitrate_total, delay_total;
     //Print per flow statistics
     monitor->CheckForLostPackets ();
-    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>
-    (flowmon.GetClassifier ());
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier ());
     std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats ();
     for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i) {
         Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
@@ -275,18 +245,22 @@ int MeshTest::Run () {
         pdf_value = (double) i->second.rxPackets / (double) i->second.txPackets * 100;
         txbitrate_value = (double) i->second.txBytes * 8 / 1024 / difftx;
         if (i->second.rxPackets != 0){
-            rxbitrate_value = (double)i->second.rxPackets * m_packetSize * 8 / 1024 / diffrx;
+            rxbitrate_value = (double) i->second.rxPackets * m_packetSize * 8 / 1024 / diffrx;
             delay_value = (double) i->second.delaySum.GetSeconds() / (double) i->second.rxPackets;
-        } else {
+        } else{
             rxbitrate_value = 0;
             delay_value = 0;
         }
-        // We are only interested in the metrics of the data flows
-        if ((!t.destinationAddress.IsSubnetDirectedBroadcast("255.255.255.0"))) {
+        // We are only interested in the metrics of the data flows. This AODV
+        // implementation create other flows with routing information at low bitrates,
+        // so a margin is defined to ensure that only our data flows are filtered.
+        if (
+            (!t.destinationAddress.IsSubnetDirectedBroadcast("255.255.255.0")) &&
+            (txbitrate_value > m_txrate_dob/1.2) &&
+            (rxbitrate_value < m_txrate_dob*1.2))
+        {
             k++;
-            // Plot the statistics for each data flow
-            std::cout << "\nFlow " << k << " (" << t.sourceAddress << " -> "
-            << t.destinationAddress << ")\n";
+            std::cout << "\nFlow " << k << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
             //std::cout << "Tx Packets: " << i->second.txPackets << "\n";
             //std::cout << "Rx Packets: " << i->second.rxPackets << "\n";
             //std::cout << "Lost Packets: " << i->second.lostPackets << "\n";
@@ -294,7 +268,7 @@ int MeshTest::Run () {
             std::cout << "PDF: " << pdf_value << " %\n";
             std::cout << "Average delay: " << delay_value << "s\n";
             std::cout << "Rx bitrate: " << rxbitrate_value << " kbps\n";
-            std::cout << "Tx bitrate: " << txbitrate_value << " kbps\n\n";
+            std::cout << "Tx bitrate: " << txbitrate_value << " kbps\n";
             // Acumulate for average statistics
             totaltxPackets += i->second.txPackets;
             totaltxbytes += i->second.txBytes;
@@ -302,66 +276,53 @@ int MeshTest::Run () {
             totaldelay += i->second.delaySum.GetSeconds();
             totalrxbitrate += rxbitrate_value;
             totalrxbytes += i->second.rxBytes;
+        } else{
+            totaltxbytesR += i->second.txBytes;
+            totalrxbytesR += i->second.rxBytes;
+            totaltxPacketsR += i->second.txPackets;
+            totalrxPacketsR += i->second.rxPackets;
         }
     }
-    // Average all nodes statistics
+    //Average all nodes statistics
     if (totaltxPackets != 0){
         pdf_total = (double) totalrxPackets / (double) totaltxPackets * 100;
-    } else {
+        // RL_tx_pack = (double) totaltxPacketsR / (double) totaltxPackets;
+        // RL_tx_bytes = totaltxbytesR / totaltxbytes;
+    } else{
         pdf_total = 0;
+        // RL_tx_pack = 0;
+        // RL_tx_bytes = 0;
     }
-    if (totalrxPackets != 0) {
+    if (totalrxPackets != 0){
         rxbitrate_total = totalrxbitrate;
         delay_total = (double) totaldelay / (double) totalrxPackets;
-    } else {
+    } else{
         rxbitrate_total = 0;
         delay_total = 0;
     }
-    //print all nodes statistics
+    // Print all nodes statistics
     std::cout << "\nTotal PDF: " << pdf_total << " %\n";
     std::cout << "Total Rx bitrate: " << rxbitrate_total << " kbps\n";
     std::cout << "Total Delay: " << delay_total << " s\n";
-    //print all nodes statistics in files
-
+    // Print all nodes statistics in files
     std::ostringstream os;
-    os << "output/txt/HWMP-vs-AODV-HWMP_PDF.txt";
+    os << "output/txt/hao-olsr-PDF.txt";
     std::ofstream of (os.str().c_str(), std::ios::out | std::ios::app);
     of << pdf_total << "\n";
-    of.close ();
     std::ostringstream os2;
-    os2 << "output/txt/HWMP-vs-AODV-HWMP_Delay.txt";
+    os2 << "output/txt/hao-olsr-Delay.txt";
     std::ofstream of2 (os2.str().c_str(), std::ios::out | std::ios::app);
     of2 << delay_total << "\n";
-    of2.close ();
     std::ostringstream os3;
-    os3 << "output/txt/HWMP-vs-AODV-HWMP_Throu.txt";
+    os3 << "output/txt/hao-olsr-Throu.txt";
     std::ofstream of3 (os3.str().c_str(), std::ios::out | std::ios::app);
     of3 << rxbitrate_total << "\n";
-    of3.close ();
+    of.close (); of2.close (); of3.close ();
     Simulator::Destroy ();
     m_timeEnd=clock();
     m_timeTotal=(m_timeEnd - m_timeStart)/(double) CLOCKS_PER_SEC;
     std::cout << "\n*** Simulation time: " << m_timeTotal << "s\n\n";
     return 0;
-}
-void MeshTest::Report () {
-    // Using this function we print detailed statistics of each mesh point device
-    // These statistics are used later with an AWK files to extract routing metrics
-    unsigned n (0);
-    for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i, ++n) {
-        std::ostringstream os;
-        //os << "mp-report1-" << n << ".xml";
-        // os << "mp-report.xml";
-        std::ofstream of;
-        of.open (os.str().c_str(), std::ios::out | std::ios::app);
-        if (! of.is_open ()) {
-            std::cerr << "Error: Can’t open file " << os.str() << "\n";
-            return;
-        }
-        mesh.Report (*i, of);
-        of.close ();
-    }
-    n = 0;
 }
 int main (int argc, char *argv[]) {
     MeshTest t;

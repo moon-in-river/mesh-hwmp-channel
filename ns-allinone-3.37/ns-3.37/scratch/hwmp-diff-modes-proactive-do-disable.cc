@@ -76,7 +76,7 @@ private:
 MeshTest::MeshTest () :
     m_nnodes (20), // 25 Proactive
     m_nconn (20), // total connections; 28 Proactive
-    m_nconnR (0), // total connections to root node. increase 7, compare influnence for hwmp-r and hwmp-p under outer or innet traffic
+    m_nconnR (8), // total connections to root node. increase 7, compare influnence for hwmp-r and hwmp-p under outer or innet traffic
     m_step (450), // 720 Proactive
     m_randomStart (0.5),
     m_totalTime (180), // 240s Proactive
